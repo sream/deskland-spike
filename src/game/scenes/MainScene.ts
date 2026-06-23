@@ -30,6 +30,11 @@ export class MainScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, ROOM_WIDTH, ROOM_HEIGHT);
     this.cameras.main.startFollow(this.player, true, 1, 1);
+    this.syncCameraZoom();
+    this.scale.on("resize", this.syncCameraZoom, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off("resize", this.syncCameraZoom, this);
+    });
 
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.keys = this.input.keyboard!.addKeys("W,A,S,D") as Record<
@@ -87,5 +92,15 @@ export class MainScene extends Phaser.Scene {
 
     graphics.lineStyle(1, 0x334155, 1);
     graphics.strokeRect(0.5, 0.5, ROOM_WIDTH - 1, ROOM_HEIGHT - 1);
+  }
+
+  private syncCameraZoom() {
+    const rect = this.game.canvas.getBoundingClientRect();
+
+    if (rect.width === 0 || rect.height === 0) {
+      return;
+    }
+
+    this.cameras.main.setZoom(this.scale.width / rect.width);
   }
 }

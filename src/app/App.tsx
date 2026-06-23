@@ -3,6 +3,8 @@ import Phaser from 'phaser'
 import { MainScene } from '../game/scenes/MainScene'
 import './App.css'
 
+const getBackingScale = () => Math.max(1, window.devicePixelRatio || 1)
+
 export function App() {
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -10,25 +12,43 @@ export function App() {
     const container = containerRef.current
     if (!container) return
 
+    const getCanvasSize = () => {
+      const backingScale = getBackingScale()
+
+      return {
+        width: Math.round(container.clientWidth * backingScale),
+        height: Math.round(container.clientHeight * backingScale),
+      }
+    }
+
+    const { width, height } = getCanvasSize()
+
     const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: container,
-      width: container.clientWidth,
-      height: container.clientHeight,
+      width,
+      height,
       scene: [MainScene],
     })
 
-    const resizeObserver = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      if (width > 0 && height > 0) {
-        game.scale.resize(width, height)
+    const syncGameSize = () => {
+      const { width: nextWidth, height: nextHeight } = getCanvasSize()
+
+      if (nextWidth > 0 && nextHeight > 0) {
+        game.scale.resize(nextWidth, nextHeight)
       }
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      syncGameSize()
     })
 
     resizeObserver.observe(container)
+    window.addEventListener('resize', syncGameSize)
 
     return () => {
       resizeObserver.disconnect()
+      window.removeEventListener('resize', syncGameSize)
       game.destroy(true)
     }
   }, [])
